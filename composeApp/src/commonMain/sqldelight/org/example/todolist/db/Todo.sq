@@ -1,0 +1,23 @@
+CREATE TABLE TodoEntity (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    content TEXT NOT NULL,
+    isDone INTEGER AS Boolean NOT NULL DEFAULT 0
+);
+
+getAllTodos:
+SELECT *
+FROM TodoEntity
+ORDER BY id DESC;
+
+insertTodo:
+INSERT INTO TodoEntity(content, isDone)
+VALUES (?, ?);
+
+deleteTodo:
+DELETE FROM TodoEntity
+WHERE id = ?;
+
+updateTodoDone:
+UPDATE TodoEntity
+SET isDone = ?
+WHERE id = ?;
