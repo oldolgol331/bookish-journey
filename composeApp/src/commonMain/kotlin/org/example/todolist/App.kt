@@ -1,48 +1,106 @@
 package org.example.todolist
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import org.jetbrains.compose.resources.painterResource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
-
-import todolistkmp.composeapp.generated.resources.Res
-import todolistkmp.composeapp.generated.resources.compose_multiplatform
 
 @Composable
 @Preview
 fun App() {
     MaterialTheme {
-        var showContent by remember { mutableStateOf(false) }
-        Column(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .safeContentPadding()
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        val viewModel = viewModel { TodoViewModel() }
+        val todos by viewModel.todos.collectAsState()
+        TodoScreen(
+            todos = todos,
+            onAddTodo = { viewModel.addTodo(it) },
+            onRemoveTodo = { viewModel.removeTodo(it) },
+            onToggleTodo = { viewModel.toggleTodo(it) })
+    }
+}
+
+@Composable
+fun TodoScreen(
+    todos: List<Todo>,
+    onAddTodo: (String) -> Unit,
+    onRemoveTodo: (Todo) -> Unit,
+    onToggleTodo: (Todo) -> Unit
+) {
+    var inputText by remember { mutableStateOf("") }
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(onClick = { showContent = !showContent }) {
-                Text("Click me!")
-            }
-            AnimatedVisibility(showContent) {
-                val greeting = remember { Greeting().greet() }
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Image(painterResource(Res.drawable.compose_multiplatform), null)
-                    Text("Compose: $greeting")
+            OutlinedTextField(
+                value = inputText,
+                onValueChange = { inputText = it },
+                modifier = Modifier.weight(1f),
+                label = { Text("할 일을 입력하세요") }
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = {
+                    onAddTodo(inputText)
+                    inputText = ""
                 }
+            ) {
+                Text("추가")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        LazyColumn {
+            items(todos) { todo ->
+                TodoItem(
+                    todo = todo,
+                    onClick = { onToggleTodo(todo) },
+                    onDelete = { onRemoveTodo(todo) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TodoItem(
+    todo: Todo,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { onClick() },
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = todo.content,
+                style = if (todo.isDone)
+                    MaterialTheme.typography.bodyLarge.copy(
+                        textDecoration = TextDecoration.LineThrough,
+                        color = Color.Gray
+                    )
+                else
+                    MaterialTheme.typography.bodyLarge
+            )
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = "삭제")
             }
         }
     }
