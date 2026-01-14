@@ -64,6 +64,8 @@ android {
     }
     lint {
         disable.add("NullSafeMutableLiveData")
+        disable.add("RememberInComposition")
+        disable.add("FrequentlyChangingValue")
         abortOnError = false
         checkReleaseBuilds = false
     }

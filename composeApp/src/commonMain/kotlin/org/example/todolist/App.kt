@@ -14,28 +14,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import org.example.todolist.db.DatabaseDriverFactory
+import org.example.todolist.db.TodoEntity
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 @Composable
 @Preview
-fun App() {
+fun App(driverFactory: DatabaseDriverFactory) {
     MaterialTheme {
-        val viewModel = viewModel { TodoViewModel() }
+        val viewModel = viewModel { TodoViewModel(driverFactory) }
         val todos by viewModel.todos.collectAsState()
         TodoScreen(
             todos = todos,
             onAddTodo = { viewModel.addTodo(it) },
             onRemoveTodo = { viewModel.removeTodo(it) },
-            onToggleTodo = { viewModel.toggleTodo(it) })
+            onToggleTodo = { viewModel.toggleTodo(it) }
+        )
     }
 }
 
 @Composable
 fun TodoScreen(
-    todos: List<Todo>,
+    todos: List<TodoEntity>,
     onAddTodo: (String) -> Unit,
-    onRemoveTodo: (Todo) -> Unit,
-    onToggleTodo: (Todo) -> Unit
+    onRemoveTodo: (TodoEntity) -> Unit,
+    onToggleTodo: (TodoEntity) -> Unit
 ) {
     var inputText by remember { mutableStateOf("") }
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -76,7 +79,7 @@ fun TodoScreen(
 
 @Composable
 fun TodoItem(
-    todo: Todo,
+    todo: TodoEntity,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {

@@ -1,10 +1,18 @@
 package org.example.todolist
 
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
+import androidx.lifecycle.viewModelScope
+import app.cash.sqldelight.coroutines.asFlow
+import app.cash.sqldelight.coroutines.mapToList
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import org.example.todolist.db.DatabaseDriverFactory
+import org.example.todolist.db.TodoDatabase
+import org.example.todolist.db.TodoEntity
 
 /**
  * PackageName : org.example.todolist
@@ -17,26 +25,36 @@ import kotlinx.coroutines.flow.update
  * ---------------------------------------------------------------------------------------------------------------------
  * 26. 1. 14.    oldolgol331          Initial creation
  */
-class TodoViewModel : ViewModel() {
-    private val _todos = MutableStateFlow<List<Todo>>(emptyList())
+class TodoViewModel(driverFactory: DatabaseDriverFactory) : ViewModel() {
 
-    val todos: StateFlow<List<Todo>> = _todos.asStateFlow()
+    private val database = TodoDatabase(driverFactory.createDriver())
+    private val dbQuery = database.todoQueries
 
-    private var nextId: Long = 1
+    val todos: StateFlow<List<TodoEntity>> = dbQuery.getAllTodos()
+        .asFlow()
+        .mapToList(Dispatchers.IO)
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     fun addTodo(content: String) {
-        if (content.isBlank()) return
-
-        val newTodo = Todo(id = nextId++, content = content)
-
-        _todos.update { currentList -> currentList + newTodo }
+        viewModelScope.launch(Dispatchers.IO) {
+            dbQuery.insertTodo(content, false)
+        }
     }
 
-    fun removeTodo(todo: Todo) {
-        _todos.update { currentList -> currentList.filter { it.id != todo.id } }
+    fun removeTodo(todo: TodoEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            dbQuery.deleteTodo(todo.id)
+        }
     }
 
-    fun toggleTodo(todo: Todo) {
-        _todos.update { currentList -> currentList.map { if (it.id == todo.id) it.copy(isDone = !it.isDone) else it } }
+    fun toggleTodo(todo: TodoEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            dbQuery.updateTodoDone(!todo.isDone, todo.id)
+        }
     }
+
 }
